@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แดชบอร์ดติดตามนักเรียนกลุ่มเสี่ยง 0 ร มส มผ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#182849;
+    --navy-2:#24365F;
+    --paper:#F6F5F1;
+    --card:#FFFFFF;
+    --ink:#1E2430;
+    --ink-soft:#5C6478;
+    --line:#E4E2DA;
+    --amber:#C9822A;
+    --red:#C23B32;
+    --red-soft:#FBE7E5;
+    --green:#2F8558;
+    --green-soft:#E3F2E9;
+    --zebra-a:#FFFFFF;
+    --zebra-b:#F2F0E8;
+    --zebra-a-hover:#F6F5F1;
+    --zebra-b-hover:#ECEAE0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans Thai',sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:36px 24px 72px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    padding-bottom:24px;
+    border-bottom:2px solid var(--navy);
+    margin-bottom:24px;
+    flex-wrap:wrap;
+  }
+  .header-text h1{
+    font-size:25px;
+    font-weight:800;
+    color:var(--navy);
+    margin:0 0 6px;
+    letter-spacing:.2px;
+  }
+  .header-text p{margin:0;color:var(--ink-soft);font-size:14.5px;}
+  .term-tag{
+    font-size:13px;
+    color:var(--navy);
+    background:#fff;
+    border:1px solid var(--line);
+    padding:6px 14px;
+    border-radius:100px;
+    white-space:nowrap;
+    font-weight:500;
+  }
+
+  /* room dropdown + refresh */
+  .room-bar{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .room-bar label{font-size:13.5px;color:var(--ink-soft);}
+  .room-select-wrap{position:relative;}
+  .room-select-wrap select{
+    appearance:none;
+    -webkit-appearance:none;
+    padding:11px 40px 11px 16px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:600;
+    color:var(--navy);
+    cursor:pointer;
+    min-width:96px;
+  }
+  .room-select-wrap select:focus{outline:2px solid var(--navy-2);outline-offset:1px;}
+  .room-select-wrap svg{
+    position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    pointer-events:none;opacity:.55;
+  }
+  .room-count{font-size:13px;color:var(--ink-soft);}
+  .refresh-btn{
+    display:inline-flex;align-items:center;gap:7px;
+    margin-left:auto;
+    padding:10px 16px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--navy);
+    cursor:pointer;
+  }
+  .refresh-btn:hover{background:#FBFAF7;}
+  .refresh-btn:disabled{opacity:.55;cursor:default;}
+  .refresh-btn svg{width:15px;height:15px;}
+  .refresh-btn.spinning svg{animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .sync-line{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:22px;
+  }
+  .sync-line .dot{color:var(--green);}
+  .sync-line.err .dot{color:var(--red);}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:30px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 18px 16px;}
+  .stat .n{font-size:30px;font-weight:800;color:var(--navy);line-height:1;}
+  .stat.risk .n{color:var(--red);}
+  .stat .l{margin-top:8px;font-size:13px;color:var(--ink-soft);}
+
+  /* toolbar */
+  .toolbar{display:flex;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+  .search-box{flex:1;min-width:220px;position:relative;}
+  .search-box input{
+    width:100%;padding:11px 14px 11px 38px;border-radius:8px;
+    border:1px solid var(--line);font-family:inherit;font-size:14.5px;
+    background:#fff;color:var(--ink);
+  }
+  .search-box input:focus{outline:2px solid var(--navy-2);outline-offset:1px;}
+  .search-box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45;}
+  .filter-select{
+    padding:11px 14px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;font-family:inherit;font-size:14px;color:var(--ink);
+  }
+
+  /* table */
+  .table-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    max-height:640px;
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+  table{width:100%;border-collapse:collapse;}
+  thead th{
+    position:sticky;top:0;z-index:2;
+    text-align:left;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+    padding:13px 16px;border-bottom:1px solid var(--line);
+    background:#FBFAF7;white-space:nowrap;
+    box-shadow:0 1px 0 var(--line);
+  }
+  thead th.status-th{text-align:center;}
+  tbody td{padding:13px 16px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  .student-name{font-weight:600;color:var(--ink);}
+  td.name-cell{vertical-align:top;border-right:1px solid var(--line);}
+  tr.zebra-a td{background:var(--zebra-a);}
+  tr.zebra-b td{background:var(--zebra-b);}
+  tr.zebra-a:hover td{background:var(--zebra-a-hover);}
+  tr.zebra-b:hover td{background:var(--zebra-b-hover);}
+  .subject{color:var(--ink-soft);font-size:12.5px;margin-top:2px;}
+  .due{font-size:13px;font-weight:600;color:var(--amber);white-space:nowrap;}
+  .note{color:var(--ink-soft);font-size:12.5px;}
+
+  /* status icon boxes */
+  .status-group{display:flex;gap:14px;justify-content:center;}
+  .status-item{display:flex;flex-direction:column;align-items:center;gap:5px;width:64px;}
+  .status-box{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+  .status-box.no{background:var(--red-soft);border:1.5px solid var(--red);}
+  .status-box.yes{background:var(--green-soft);border:1.5px solid var(--green);}
+  .status-box svg{width:14px;height:14px;}
+  .status-box.no svg{stroke:var(--red);}
+  .status-box.yes svg{stroke:var(--green);}
+  .status-label{font-size:10.5px;color:var(--ink-soft);text-align:center;line-height:1.2;}
+
+  .empty-row td{text-align:center;padding:56px 16px;color:var(--ink-soft);font-size:14px;}
+  .state-box{text-align:center;padding:64px 24px;color:var(--ink-soft);}
+  .state-box .big{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:6px;}
+  .state-box .small{font-size:13px;}
+  .spinner{
+    width:26px;height:26px;margin:0 auto 14px;
+    border:3px solid var(--line);border-top-color:var(--navy);
+    border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+
+  @media (max-width:760px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    header{flex-direction:column;align-items:flex-start;}
+    .refresh-btn{margin-left:0;}
+    .table-card{overflow-x:auto;overflow-y:auto;max-height:560px;}
+    table{min-width:820px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-text">
+      <h1>ติดตามงานค้างนักเรียนกลุ่มเสี่ยง 0 / ร / มส / มผ</h1>
+      <p>ภาพรวมรายห้อง — ดึงข้อมูลสดจาก Google Sheets ทุกครั้งที่เปิดหรือรีเฟรช</p>
+    </div>
+    <div class="term-tag">ภาคเรียนที่ 2 ปีการศึกษา 2568</div>
+  </header>
+
+  <div class="room-bar">
+    <label for="gradeSelect">ระดับชั้น</label>
+    <div class="room-select-wrap">
+      <select id="gradeSelect"></select>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <label for="roomNumSelect">ห้อง</label>
+    <div class="room-select-wrap">
+      <select id="roomNumSelect"></select>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <span class="room-count" id="roomCount"></span>
+    <button class="refresh-btn" id="refreshBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"/><path d="M3 21v-5h5"/></svg>
+      รีเฟรชข้อมูล
+    </button>
+  </div>
+  <div class="sync-line" id="syncLine">กำลังเชื่อมต่อ Google Sheets...</div>
+
+  <div class="stats">
+    <div class="stat risk"><div class="n" id="statTotal">0</div><div class="l">รายการงานค้างทั้งหมด</div></div>
+    <div class="stat"><div class="n" id="statStudents">0</div><div class="l">นักเรียนที่มีรายชื่อ</div></div>
+    <div class="stat"><div class="n" id="statParent">0</div><div class="l">ติดต่อผู้ปกครองแล้ว</div></div>
+    <div class="stat"><div class="n" id="statDone">0</div><div class="l">ส่งงานแล้ว</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="text" placeholder="ค้นหาชื่อนักเรียน หรือ รายวิชา...">
+    </div>
+    <select class="filter-select" id="statusFilter">
+      <option value="all">ทุกสถานะ</option>
+      <option value="pending">ยังไม่ส่งงาน</option>
+      <option value="done">ส่งงานแล้ว</option>
+    </select>
+  </div>
+
+  <div class="table-card" id="tableCard">
+    <table>
+      <thead>
+        <tr>
+          <th>ชื่อ - สกุล นักเรียน</th>
+          <th>รายวิชา / ครูผู้สอน</th>
+          <th>งานที่ค้างส่ง</th>
+          <th>กำหนดส่ง</th>
+          <th class="status-th">สถานะติดตาม</th>
+          <th>หมายเหตุ</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID = "1Plue0CJan9xPRt0v-d9E3kL7a4fvb3z4qPnxol6C2ZU";
+
+// ---- ม.ต้น (ม.1-3) มี 10 ห้อง/ระดับชั้น, ม.ปลาย (ม.4-6) มี 16 ห้อง/ระดับชั้น ----
+const ROOMS_PER_GRADE = {1:10, 2:10, 3:10, 4:16, 5:16, 6:16};
+const totalRooms = Object.values(ROOMS_PER_GRADE).reduce((a,b)=>a+b, 0);
+
+const gradeSelect = document.getElementById('gradeSelect');
+const roomNumSelect = document.getElementById('roomNumSelect');
+const refreshBtn = document.getElementById('refreshBtn');
+const syncLine = document.getElementById('syncLine');
+const tableCard = document.getElementById('tableCard');
+
+const DEFAULT_GRADE = 5, DEFAULT_ROOM = 10;
+
+gradeSelect.innerHTML = Object.keys(ROOMS_PER_GRADE)
+  .map(g => `<option value="${g}" ${Number(g)===DEFAULT_GRADE?'selected':''}>ม.${g}</option>`).join('');
+
+function populateRoomNumbers(grade, selectedRoom){
+  const count = ROOMS_PER_GRADE[grade];
+  const opts = [];
+  for(let r=1; r<=count; r++) opts.push(r);
+  roomNumSelect.innerHTML = opts.map(r => `<option value="${r}" ${r===selectedRoom?'selected':''}>ห้อง ${r}</option>`).join('');
+}
+populateRoomNumbers(DEFAULT_GRADE, DEFAULT_ROOM);
+document.getElementById('roomCount').textContent = `ทั้งหมด ${totalRooms} ห้องเรียน`;
+
+function currentRoom(){
+  return `ม.${gradeSelect.value}/${roomNumSelect.value}`;
+}
+
+let currentRecords = [];
+const cache = new Map(); // room -> records array, or null = fetch failed / tab not found
+
+// sheet tab naming convention observed in this workbook: "ม{grade}.{room}" e.g. "ม5.10"
+function roomToTabName(room){
+  const m = room.match(/^ม\.(\d+)\/(\d+)$/);
+  if(!m) return null;
+  return `ม${m[1]}.${m[2]}`;
+}
+
+// ---- load a sheet tab via JSONP script-tag (avoids CORS issues that block fetch()) ----
+function loadSheetJSONP(tabName){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gvizCb_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+
+    const cleanup = () => {
+      delete window[cbName];
+      script.remove();
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('หมดเวลาเชื่อมต่อ Google Sheets'));
+    }, 12000);
+
+    window[cbName] = (response) => {
+      cleanup();
+      if(!response || response.status === 'error'){
+        reject(new Error('ไม่พบแท็บ "' + tabName + '" ในชีต'));
+        return;
+      }
+      resolve(response.table);
+    };
+
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
+      `?tqx=out:json;responseHandler:${cbName}` +
+      `&sheet=${encodeURIComponent(tabName)}&headers=0&t=${Date.now()}`;
+    script.src = url;
+    script.onerror = () => { cleanup(); reject(new Error('โหลดข้อมูลจาก Google Sheets ไม่สำเร็จ')); };
+    document.body.appendChild(script);
+  });
+}
+
+// gviz JSON table -> array-of-arrays of raw string/boolean values, like a CSV grid
+function gvizTableToRows(table){
+  if(!table || !table.rows) return [];
+  return table.rows.map(row =>
+    (row.c || []).map(cell => {
+      if(!cell || cell.v === null || cell.v === undefined) return '';
+      // prefer the sheet's formatted display text (handles dates like
+      // "25 ก.พ. 69" correctly instead of the raw Date(1969,1,25) value)
+      if(cell.f !== undefined && cell.f !== null && cell.f !== '') return cell.f;
+      return cell.v; // fallback: keep native type (boolean for checkboxes, plain string otherwise)
+    })
+  );
+}
+
+function rowsToRecords(rows){
+  const records = [];
+  let curCode='', curSubject='', curTeacher='', curStudent='', curDue='';
+  const asText = v => (v === true || v === false) ? '' : String(v).trim();
+  const asBool = v => v === true || String(v).trim().toUpperCase() === 'TRUE';
+
+  for(let i=2; i<rows.length; i++){ // skip merged title row + header row
+    const cols = rows[i];
+    if(!cols || cols.length < 9) continue;
+    const [code, subject, teacher, student, task, parent, teacherContact, submitted, due, note] = cols;
+    const codeT = asText(code), subjectT = asText(subject), teacherT = asText(teacher);
+    const studentT = asText(student), taskT = asText(task), dueT = asText(due), noteT = asText(note);
+
+    if(!taskT && !studentT && !codeT && !subjectT) continue; // spacer row
+
+    if(codeT) curCode = codeT;
+    if(subjectT) curSubject = subjectT;
+    if(teacherT) curTeacher = teacherT;
+    if(studentT){ curStudent = studentT; curDue = dueT; }
+    else if(dueT){ curDue = dueT; }
+
+    if(!taskT) continue;
+
+    records.push({
+      subjectCode: curCode,
+      subject: curSubject,
+      teacher: curTeacher,
+      name: curStudent,
+      task: taskT,
+      parentContacted: asBool(parent),
+      teacherContacted: asBool(teacherContact),
+      submitted: asBool(submitted),
+      due: dueT || curDue,
+      note: noteT
+    });
+  }
+  // drop the sheet's own placeholder/example rows (subject code like "คxxxxx")
+  return records.filter(r => !/x{3,}/i.test(r.subjectCode));
+}
+
+async function fetchRoom(room, force){
+  if(!force && cache.has(room)) return cache.get(room);
+  const tab = roomToTabName(room);
+  if(!tab){ cache.set(room, []); return []; }
+  const table = await loadSheetJSONP(tab);
+  const records = rowsToRecords(gvizTableToRows(table));
+  cache.set(room, records);
+  return records;
+}
+
+function statusBox(ok, label){
+  const icon = ok
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l14 14M19 5L5 19"/></svg>`;
+  return `<div class="status-item"><div class="status-box ${ok?'yes':'no'}">${icon}</div><div class="status-label">${label}</div></div>`;
+}
+
+function renderStats(rows){
+  document.getElementById('statTotal').textContent = rows.length;
+  document.getElementById('statStudents').textContent = new Set(rows.map(r=>r.name)).size;
+  document.getElementById('statParent').textContent = rows.filter(r=>r.parentContacted).length;
+  document.getElementById('statDone').textContent = rows.filter(r=>r.submitted).length;
+}
+
+function groupByStudent(rows){
+  const map = new Map();
+  rows.forEach(r=>{
+    if(!map.has(r.name)) map.set(r.name, []);
+    map.get(r.name).push(r);
+  });
+  return Array.from(map.values());
+}
+
+function runSpans(arr, keyFn){
+  const spans = new Array(arr.length).fill(0);
+  let i = 0;
+  while(i < arr.length){
+    const key = keyFn(arr[i]);
+    let j = i + 1;
+    while(j < arr.length && keyFn(arr[j]) === key) j++;
+    spans[i] = j - i;
+    i = j;
+  }
+  return spans;
+}
+
+function ensureTableSkeleton(){
+  if(document.getElementById('tableBody')) return;
+  tableCard.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>ชื่อ - สกุล นักเรียน</th>
+          <th>รายวิชา / ครูผู้สอน</th>
+          <th>งานที่ค้างส่ง</th>
+          <th>กำหนดส่ง</th>
+          <th class="status-th">สถานะติดตาม</th>
+          <th>หมายเหตุ</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>`;
+}
+
+function renderTable(rows){
+  ensureTableSkeleton();
+  const body = document.getElementById('tableBody');
+  if(rows.length === 0){
+    body.innerHTML = `<tr class="empty-row"><td colspan="6">ไม่พบรายการที่ตรงกับการค้นหา</td></tr>`;
+    return;
+  }
+  const groups = groupByStudent(rows);
+  let html = '';
+  groups.forEach((group, gi) => {
+    const zebra = gi % 2 === 0 ? 'zebra-a' : 'zebra-b';
+    const subjectSpans = runSpans(group, r => r.subject + '|' + r.teacher);
+    group.forEach((r, i) => {
+      html += `<tr class="${zebra}">`;
+      if(i === 0){
+        html += `<td rowspan="${group.length}" class="name-cell"><div class="student-name">${r.name}</div></td>`;
+      }
+      if(subjectSpans[i] > 0){
+        html += `<td rowspan="${subjectSpans[i]}">${r.subject}<div class="subject">${r.teacher}</div></td>`;
+      }
+      html += `
+        <td>${r.task}</td>
+        <td><span class="due">${r.due}</span></td>
+        <td>
+          <div class="status-group">
+            ${statusBox(r.parentContacted, 'ติดต่อ ผปค.')}
+            ${statusBox(r.teacherContacted, 'พบครูผู้สอน')}
+            ${statusBox(r.submitted, 'ส่งงานแล้ว')}
+          </div>
+        </td>
+        <td><span class="note">${r.note || '—'}</span></td>
+      </tr>`;
+    });
+  });
+  body.innerHTML = html;
+}
+
+function showState(big, small){
+  tableCard.innerHTML = `<div class="state-box"><div class="big">${big}</div><div class="small">${small||''}</div></div>`;
+  renderStats([]);
+}
+
+function showLoadingState(room){
+  tableCard.innerHTML = `<div class="state-box"><div class="spinner"></div><div class="big">กำลังดึงข้อมูลห้อง ${room}...</div></div>`;
+}
+
+function applyFilters(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+
+  let rows = currentRecords.filter(r =>
+    r.name.toLowerCase().includes(q) ||
+    r.subject.toLowerCase().includes(q) ||
+    r.teacher.toLowerCase().includes(q)
+  );
+  if(status === 'pending') rows = rows.filter(r => !r.submitted);
+  if(status === 'done') rows = rows.filter(r => r.submitted);
+
+  renderStats(currentRecords);
+  renderTable(rows);
+}
+
+function setSync(ok, text){
+  syncLine.textContent = text;
+  syncLine.className = 'sync-line' + (ok ? '' : ' err');
+}
+
+async function loadRoom(force){
+  const room = currentRoom();
+  refreshBtn.classList.add('spinning');
+  refreshBtn.disabled = true;
+  showLoadingState(room);
+  setSync(true, `กำลังดึงข้อมูลห้อง ${room} จาก Google Sheets...`);
+  try{
+    const records = await fetchRoom(room, force);
+    currentRecords = records;
+    if(records.length === 0){
+      showState(`ยังไม่มีข้อมูลสำหรับห้อง ${room}`, 'เพิ่มข้อมูลในชีตของห้องนี้แล้วกดรีเฟรชได้เลย');
+    } else {
+      ensureTableSkeleton();
+      applyFilters();
+    }
+    const now = new Date();
+    setSync(true, `● ข้อมูลล่าสุด ${now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})} น. — ห้อง ${room}`);
+  } catch(err){
+    currentRecords = [];
+    showState('ดึงข้อมูลไม่สำเร็จ', 'ตรวจสอบว่าชีตนี้แชร์แบบ "ทุกคนที่มีลิงก์ดูได้" แล้วลองรีเฟรชอีกครั้ง');
+    setSync(false, `● เชื่อมต่อ Google Sheets ไม่สำเร็จ: ${err.message}`);
+  } finally {
+    refreshBtn.classList.remove('spinning');
+    refreshBtn.disabled = false;
+  }
+}
+
+gradeSelect.addEventListener('change', () => {
+  populateRoomNumbers(Number(gradeSelect.value), 1);
+  loadRoom(false);
+});
+roomNumSelect.addEventListener('change', () => loadRoom(false));
+refreshBtn.addEventListener('click', () => loadRoom(true));
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+// fetch fresh every time the dashboard is opened / reloaded
+loadRoom(true);
+</script>
+</body>
+</html>
