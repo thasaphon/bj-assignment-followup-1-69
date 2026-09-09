@@ -282,16 +282,9 @@
 </div>
 
 <script>
-// ---- 1 ลิงก์ Google Sheets ต่อ 1 ระดับชั้น (ม.1-6) — ใส่ Spreadsheet ID ของแต่ละชั้นตรงนี้ ----
-// วิธีหา ID: จากลิงก์ https://docs.google.com/spreadsheets/d/{ID}/edit... คัดลอกส่วน {ID} มาใส่
-const SHEET_IDS = {
-  1: "1NVPQpLKYA4fbQGSk7alVj2tVuKljnd_HLViuJjfKjUA",
-  2: "1ARDcGULWG9ILc2wYGaJrEb2fOPmDxSY_2ghhEzn6fpY",
-  3: "1OiP4TOgaz6fY5oQ09qpGnI3T0VxLFpV_HzysVcPk6Z8",
-  4: "14CadbUJo6exEzGgjeP-yP27s4ZlkQc5ObIVjLBdFiso",
-  5: "1Yb3dnmXYmP4p84ylHIJkGMFpEnJft5HWKgqHr4u8ePk",
-  6: "1BzsJkeEvbF2UzKoyZkfuRVn4_wgpgSPGOyFrOWdBve0"
-};
+// ---- ไฟล์ Google Sheets เดียว รวม 78 แท็บ (ทุกชั้น ทุกห้อง) ----
+const SHEET_ID = "1zKrazTM721NWJ8Tkany3sr6nRkEWGunAi_DRNZteW8M";
+const SHEET_IDS = {1: SHEET_ID, 2: SHEET_ID, 3: SHEET_ID, 4: SHEET_ID, 5: SHEET_ID, 6: SHEET_ID};
 
 // ---- ม.ต้น (ม.1-3) มี 10 ห้อง/ระดับชั้น, ม.ปลาย (ม.4-6) มี 16 ห้อง/ระดับชั้น ----
 const ROOMS_PER_GRADE = {1:10, 2:10, 3:10, 4:16, 5:16, 6:16};
@@ -304,26 +297,32 @@ const syncLine = document.getElementById('syncLine');
 const tableCard = document.getElementById('tableCard');
 const termTag = document.getElementById('termTag');
 
-const DEFAULT_GRADE = 'ALL', DEFAULT_ROOM = 'ALL';
-
 gradeSelect.innerHTML =
-  `<option value="ALL" selected>ทุกชั้น</option>` +
+  `<option value="" selected>เลือกชั้น</option>` +
+  `<option value="ALL">ทุกชั้น</option>` +
   Object.keys(ROOMS_PER_GRADE).map(g => `<option value="${g}">ม.${g}</option>`).join('');
 
 function populateRoomNumbers(grade, selectedRoom){
+  if(grade === ''){
+    roomNumSelect.innerHTML = `<option value="" selected>เลือกห้อง</option>`;
+    return;
+  }
   const max = grade === 'ALL' ? MAX_ROOMS : ROOMS_PER_GRADE[grade];
   const opts = [];
   for(let r=1; r<=max; r++) opts.push(r);
   roomNumSelect.innerHTML =
+    `<option value="" ${selectedRoom===''?'selected':''}>เลือกห้อง</option>` +
     `<option value="ALL" ${selectedRoom==='ALL'?'selected':''}>ทุกห้อง</option>` +
     opts.map(r => `<option value="${r}" ${r===selectedRoom?'selected':''}>ห้อง ${r}</option>`).join('');
 }
-populateRoomNumbers(DEFAULT_GRADE, DEFAULT_ROOM);
+populateRoomNumbers('', '');
 
 // returns the list of "ม.G/R" room labels implied by the current grade+room selection
+// (empty array when the person hasn't picked both a grade and a room yet)
 function selectedRoomList(){
   const g = gradeSelect.value;
   const r = roomNumSelect.value;
+  if(g === '' || r === '') return [];
   const grades = g === 'ALL' ? Object.keys(ROOMS_PER_GRADE).map(Number) : [Number(g)];
   const list = [];
   grades.forEach(gr => {
@@ -340,11 +339,11 @@ function selectedRoomList(){
 let currentRecords = [];
 const cache = new Map(); // room -> records array, or null = fetch failed / tab not found
 
-// sheet tab naming convention observed in these workbooks: "ม{grade}.{room}" e.g. "ม5.10"
+// sheet tab naming convention in this consolidated workbook: "{grade}.{room}" e.g. "5.10" (no "ม" prefix)
 function roomToTabName(room){
   const m = room.match(/^ม\.(\d+)\/(\d+)$/);
   if(!m) return null;
-  return `ม${m[1]}.${m[2]}`;
+  return `${m[1]}.${m[2]}`;
 }
 
 function roomToSheetId(room){
@@ -603,6 +602,16 @@ function setSync(ok, text){
 
 async function loadRoom(force){
   const roomList = selectedRoomList();
+
+  if(roomList.length === 0){
+    refreshBtn.classList.remove('spinning');
+    refreshBtn.disabled = false;
+    currentRecords = [];
+    showState('กรุณาเลือกชั้นและห้องเรียน');
+    setSync(true, 'รอการเลือกชั้นและห้องเรียน');
+    return;
+  }
+
   const multiRoom = roomList.length > 1;
   const label = multiRoom ? `${roomList.length} ห้อง` : (roomList[0] || '');
 
@@ -642,7 +651,7 @@ async function loadRoom(force){
 }
 
 gradeSelect.addEventListener('change', () => {
-  populateRoomNumbers(gradeSelect.value, 1);
+  populateRoomNumbers(gradeSelect.value, '');
   loadRoom(false);
 });
 roomNumSelect.addEventListener('change', () => loadRoom(false));
@@ -650,7 +659,8 @@ refreshBtn.addEventListener('click', () => loadRoom(true));
 document.getElementById('searchInput').addEventListener('input', applyFilters);
 document.getElementById('statusFilter').addEventListener('change', applyFilters);
 
-// fetch fresh every time the dashboard is opened / reloaded
+// on open: nothing is selected yet, so just show the prompt (no fetch happens until
+// both a grade and a room are chosen)
 loadRoom(true);
 </script>
 </body>
