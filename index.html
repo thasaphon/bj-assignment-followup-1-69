@@ -475,6 +475,40 @@ async function fetchRoom(room, force){
   return records;
 }
 
+// retry once on failure (a timed-out/dropped JSONP call is often transient)
+async function fetchRoomWithRetry(room, force){
+  try{
+    return await fetchRoom(room, force);
+  } catch(err){
+    try{
+      return await fetchRoom(room, true); // force a clean second attempt, bypassing any partial cache
+    } catch(err2){
+      throw err2;
+    }
+  }
+}
+
+// fetch many rooms without overwhelming the browser/Google with dozens of simultaneous
+// JSONP requests at once — that's what was causing some rooms to silently drop when
+// "ทุกชั้น"/"ทุกห้อง" fired 78 requests in parallel. Runs a small pool of workers instead.
+async function fetchRoomsInBatches(roomList, force, concurrency){
+  const results = new Array(roomList.length);
+  let next = 0;
+  async function worker(){
+    while(next < roomList.length){
+      const i = next++;
+      try{
+        results[i] = { status: 'fulfilled', value: await fetchRoomWithRetry(roomList[i], force) };
+      } catch(err){
+        results[i] = { status: 'rejected', reason: err };
+      }
+    }
+  }
+  const workerCount = Math.min(concurrency, roomList.length) || 1;
+  await Promise.all(Array.from({length: workerCount}, worker));
+  return results;
+}
+
 // derive "ภาคเรียนที่ X ปีการศึกษา YYYY" straight from row 1 (the sheet's own title row)
 function extractTermYear(titleText){
   if(!titleText) return null;
@@ -639,7 +673,7 @@ async function loadRoom(force){
   setSync(true, `กำลังดึงข้อมูล${multiRoom ? label : 'ห้อง '+label} จาก Google Sheets...`);
 
   try{
-    const results = await Promise.allSettled(roomList.map(room => fetchRoom(room, force)));
+    const results = await fetchRoomsInBatches(roomList, force, 6);
     const records = [];
     let failCount = 0;
     results.forEach(res => {
