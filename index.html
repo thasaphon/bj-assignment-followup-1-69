@@ -427,7 +427,7 @@ function rowsToRecords(rows){
   for(let i=7; i<rows.length; i++){ // rows 1-7 are title/header/example rows in this sheet; data starts row 8
     const cols = rows[i];
     if(!cols || cols.length < 9) continue;
-    const [code, subject, teacher, student, task, parent, teacherContact, submitted, due, note] = cols;
+    const [code, subject, teacher, student, task, due, parent, teacherContact, submitted, note] = cols;
     const codeT = asText(code), subjectT = asText(subject), teacherT = asText(teacher);
     const studentT = asText(student), taskT = asText(task), dueT = asText(due), noteT = asText(note);
 
