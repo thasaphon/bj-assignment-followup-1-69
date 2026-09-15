@@ -269,7 +269,7 @@
           <th>รายวิชา / ครูผู้สอน</th>
           <th>งานที่ค้างส่ง</th>
           <th>กำหนดส่ง</th>
-          <th class="status-th">ติดต่อ ผปค.</th>
+          <th class="status-th">ผปค. มาประชุม</th>
           <th class="status-th">พบครูผู้สอน</th>
           <th class="status-th">ส่งงานแล้ว</th>
           <th>หมายเหตุ</th>
@@ -386,14 +386,32 @@ function loadSheetJSONP(sheetId, tabName){
   });
 }
 
+const THAI_MONTH_ABBR = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+// gviz reports date cells as "Date(year,month0-indexed,day)" — the "year" it stores can be
+// off (e.g. a 2-digit Buddhist year like 69 gets stored as Gregorian 1969), but day/month are
+// reliable and (year % 100) always recovers the 2-digit year the teacher actually typed.
+function parseGvizDate(v){
+  if(typeof v !== 'string') return null;
+  const m = v.match(/^Date\((\d+),(\d+),(\d+)/);
+  if(!m) return null;
+  return { year: parseInt(m[1],10), month: parseInt(m[2],10) + 1, day: parseInt(m[3],10) };
+}
+function formatThaiDate(d){
+  const yy = String(((d.year % 100) + 100) % 100).padStart(2,'0');
+  return `${d.day} ${THAI_MONTH_ABBR[d.month-1]} ${yy}`;
+}
+
 // gviz JSON table -> array-of-arrays of raw string/boolean values, like a CSV grid
 function gvizTableToRows(table){
   if(!table || !table.rows) return [];
   return table.rows.map(row =>
     (row.c || []).map(cell => {
       if(!cell || cell.v === null || cell.v === undefined) return '';
-      // prefer the sheet's formatted display text (handles dates like
-      // "25 ก.พ. 69" correctly instead of the raw Date(1969,1,25) value)
+      // date cells: always render in Thai format ("4 ต.ค. 69"), regardless of the
+      // sheet's own locale/formatting (which may show English month names)
+      const d = parseGvizDate(cell.v);
+      if(d) return formatThaiDate(d);
+      // everything else: prefer the sheet's formatted display text
       if(cell.f !== undefined && cell.f !== null && cell.f !== '') return cell.f;
       return cell.v; // fallback: keep native type (boolean for checkboxes, plain string otherwise)
     })
@@ -527,7 +545,7 @@ function ensureTableSkeleton(){
           <th>รายวิชา / ครูผู้สอน</th>
           <th>งานที่ค้างส่ง</th>
           <th>กำหนดส่ง</th>
-          <th class="status-th">ติดต่อ ผปค.</th>
+          <th class="status-th">ผปค. มาประชุม</th>
           <th class="status-th">พบครูผู้สอน</th>
           <th class="status-th">ส่งงานแล้ว</th>
           <th>หมายเหตุ</th>
